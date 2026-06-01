@@ -1,0 +1,9 @@
+name = "bespoke-page-bloom-frontend"
+type = "javascript"
+main = "dist/server/server.js"
+compatibility_date = "2026-06-01"
+workers_dev = true
+
+# If you want to deploy to a specific account, set account_id here or
+# pass it via Wrangler CLI options.
+# account_id = "your-account-id"

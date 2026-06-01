@@ -10,6 +10,7 @@
     "dev": "npm --workspace frontend run dev",
     "build": "npm --workspace frontend run build",
     "preview": "npm --workspace frontend run preview",
+    "deploy:frontend": "npm --workspace frontend run deploy",
     "start": "npm --workspace backend run start",
     "lint": "npm --workspace frontend run lint",
     "format": "npm --workspace frontend run format"
