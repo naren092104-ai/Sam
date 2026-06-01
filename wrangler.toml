@@ -1,4 +1,4 @@
-name = "bespoke-page-bloom"
+name = "samenterprise"
 main = "frontend/dist/server/server.js"
 compatibility_date = "2026-06-01"
 compatibility_flags = ["nodejs_compat"]
