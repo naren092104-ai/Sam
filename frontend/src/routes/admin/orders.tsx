@@ -236,8 +236,6 @@ function AdminOrders() {
     setActionLoading(false);
   };
 
-  const pageCount = Math.ceil(totalOrders / (filters.limit || 10));
-
   const effectiveStats = stats ?? DUMMY_STATS;
   const dataOrders = orders.length > 0 ? orders : DUMMY_ORDERS;
   const effectiveTotalOrders = orders.length > 0 ? totalOrders : DUMMY_ORDERS.length;
@@ -402,23 +400,19 @@ function AdminOrders() {
                   </td>
                 </tr>
               ) : (
-                {dataOrders.map((order) => (
+                dataOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-orange-50">
                     <td className="px-4 py-4 font-medium text-slate-900">#{order.id}</td>
                     <td className="px-4 py-4 text-slate-700">{order.customerName}</td>
                     <td className="px-4 py-4 text-slate-700">{order.productsCount}</td>
                     <td className="px-4 py-4 text-slate-700">₹{order.totalAmount.toFixed(2)}</td>
                     <td className="px-4 py-4 text-slate-700">{order.paymentMethod ?? "—"}</td>
-                    <td className="px-4 py-4 text-slate-700">{order.paymentStatus ?? "—"}</td>
-                    <td className="px-4 py-4 text-slate-700">{order.deliveryAgent ?? "Unassigned"}</td>
                     <td className="px-4 py-4 text-right">
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>
                         {order.status}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-slate-200">{order.paymentMethod ?? "—"}</td>
-                    <td className="px-4 py-4 text-slate-200">{order.paymentStatus ?? "—"}</td>
-                    <td className="px-4 py-4 text-slate-200">{order.deliveryAgent ?? "Unassigned"}</td>
+                    <td className="px-4 py-4 text-slate-700">{order.deliveryAgent ?? "Unassigned"}</td>
                     <td className="px-4 py-4 text-right">
                       <button
                         onClick={() => openOrder(order.id)}
