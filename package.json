@@ -1,0 +1,13 @@
+{
+  "name": "bespoke-page-bloom",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "npm --workspace frontend run dev",
+    "build": "npm --workspace frontend run build",
+    "preview": "npm --workspace frontend run preview",
+    "start": "npm --workspace backend run start",
+    "lint": "npm --workspace frontend run lint",
+    "format": "npm --workspace frontend run format"
+  }
+}
