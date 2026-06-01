@@ -1,7 +1,7 @@
 name = "bespoke-page-bloom"
-type = "javascript"
 main = "frontend/dist/server/server.js"
 compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
 [build]
