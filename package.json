@@ -2,6 +2,10 @@
   "name": "bespoke-page-bloom",
   "private": true,
   "workspaces": ["frontend", "backend"],
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.60.4",
+    "@rollup/rollup-linux-x64-musl": "4.60.4"
+  },
   "scripts": {
     "dev": "npm --workspace frontend run dev",
     "build": "npm --workspace frontend run build",

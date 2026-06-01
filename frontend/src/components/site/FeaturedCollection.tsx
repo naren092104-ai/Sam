@@ -7,12 +7,12 @@ import pFish from "@/assets/p-fish.jpg";
 import pChicken from "@/assets/p-chicken.jpg";
 
 const defaultProducts = [
-  { name: "Avakaya Mango", tag: "Bestseller", img: pMango, price: 499, mrp: 699, off: 29, rating: 4.9, reviews: 1284 },
-  { name: "Sun-Dried Lemon", tag: "New", img: pLemon, price: 379, mrp: 499, off: 24, rating: 4.8, reviews: 842 },
-  { name: "Smoked Garlic", tag: "Limited", img: pGarlic, price: 549, mrp: 749, off: 27, rating: 4.9, reviews: 612 },
-  { name: "Malabar Fish", tag: "Chef's Pick", img: pFish, price: 699, mrp: 899, off: 22, rating: 4.7, reviews: 391 },
-  { name: "Andhra Chicken", tag: "Spicy", img: pChicken, price: 749, mrp: 949, off: 21, rating: 4.9, reviews: 528 },
-  { name: "Heritage Trio Box", tag: "Gift", img: pMango, price: 1299, mrp: 1799, off: 28, rating: 5.0, reviews: 204 },
+  { name: "Avakaya Mango", tag: "Bestseller", img: pMango, price: 499, mrp: 699, off: 29, rating: 4.9, reviews: 1284, weight: 500, weightUnit: "gram" },
+  { name: "Sun-Dried Lemon", tag: "New", img: pLemon, price: 379, mrp: 499, off: 24, rating: 4.8, reviews: 842, weight: 500, weightUnit: "gram" },
+  { name: "Smoked Garlic", tag: "Limited", img: pGarlic, price: 549, mrp: 749, off: 27, rating: 4.9, reviews: 612, weight: 500, weightUnit: "gram" },
+  { name: "Malabar Fish", tag: "Chef's Pick", img: pFish, price: 699, mrp: 899, off: 22, rating: 4.7, reviews: 391, weight: 500, weightUnit: "gram" },
+  { name: "Andhra Chicken", tag: "Spicy", img: pChicken, price: 749, mrp: 949, off: 21, rating: 4.9, reviews: 528, weight: 500, weightUnit: "gram" },
+  { name: "Heritage Trio Box", tag: "Gift", img: pMango, price: 1299, mrp: 1799, off: 28, rating: 5.0, reviews: 204, weight: 1, weightUnit: "kg" },
 ];
 
 interface PublicProduct {
@@ -24,6 +24,8 @@ interface PublicProduct {
   offerPrice: number;
   status?: string;
   image?: string;
+  weight?: number;
+  weightUnit?: "gram" | "kg" | "litre" | "ml";
 }
 
 export function FeaturedCollection() {
@@ -41,7 +43,8 @@ export function FeaturedCollection() {
         const mapped = data.products.slice(0, 6).map((product: PublicProduct) => {
           const parsedOfferPrice = Number(product.offerPrice || 0);
           const parsedPrice = Number(product.price || 0);
-          
+          const weight = Number(product.weight ?? 0);
+          const weightUnit = product.weightUnit || "kg";
           const price = parsedOfferPrice || parsedPrice || 0;
           const mrp = parsedPrice || price;
           const off = parsedOfferPrice
@@ -57,6 +60,8 @@ export function FeaturedCollection() {
             off,
             rating: 4.8,
             reviews: 120,
+            weight,
+            weightUnit,
           };
         });
 
@@ -128,7 +133,9 @@ export function FeaturedCollection() {
                 <span className="ml-1 text-xs font-medium text-muted-foreground">{p.rating} ({p.reviews})</span>
               </div>
               <h3 className="mt-2 font-display text-2xl font-medium tracking-tight">{p.name}</h3>
-              <p className="text-sm text-muted-foreground">500g · Glass jar</p>
+              <p className="text-sm text-muted-foreground">
+                {p.weight ? `${p.weight}${p.weightUnit === "gram" ? "g" : p.weightUnit === "litre" ? "L" : p.weightUnit}` : "500g"} · Glass jar
+              </p>
               <div className="mt-3 flex items-baseline gap-2">
                 <span className="font-display text-2xl font-semibold text-primary">₹{p.price}</span>
                 {p.off > 0 && (
