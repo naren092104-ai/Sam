@@ -7,5 +7,9 @@ workers_dev = true
 [build]
 command = "npm --workspace frontend run build"
 
+[site]
+bucket = "frontend/dist/client"
+
+
 # Optional: set account_id if you deploy to a specific Cloudflare account.
 # account_id = "your-account-id"
