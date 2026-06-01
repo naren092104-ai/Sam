@@ -154,7 +154,13 @@ export function useOrdersApi() {
     async (filters: OrderFilter): Promise<OrderListResponse | null> => {
       return runRequest(async () => {
         const response = await adminApi.orders(token, filters);
-        return response.data as OrderListResponse;
+        const data = response.data;
+        // Handle new response format with success flag
+        if (data.success && data.data) {
+          return data.data as OrderListResponse;
+        }
+        // Handle old response format for backwards compatibility
+        return data as OrderListResponse;
       });
     },
     [token, runRequest],
@@ -164,7 +170,13 @@ export function useOrdersApi() {
     async (id: number): Promise<OrderDetail | null> => {
       return runRequest(async () => {
         const response = await adminApi.orderById(token, id);
-        return response.data.order as OrderDetail;
+        const data = response.data;
+        // Handle new response format
+        if (data.success && data.order) {
+          return { ...data.order, items: data.items || [], history: data.history || [] } as OrderDetail;
+        }
+        // Handle old response format
+        return (data.order || data) as OrderDetail;
       });
     },
     [token, runRequest],
@@ -223,7 +235,13 @@ export function useOrdersApi() {
   const getDeliveryAgents = useCallback(async () => {
     return runRequest(async () => {
       const response = await adminApi.orderAgents(token);
-      return response.data.agents as DeliveryAgent[];
+      const data = response.data;
+      // Handle new response format
+      if (data.success && data.agents) {
+        return data.agents as DeliveryAgent[];
+      }
+      // Handle old response format
+      return (data.agents || []) as DeliveryAgent[];
     });
   }, [token, runRequest]);
 

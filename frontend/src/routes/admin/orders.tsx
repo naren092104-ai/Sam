@@ -132,6 +132,9 @@ function AdminOrders() {
     getDeliveryAgents,
   } = useOrdersApi();
 
+  // Mount state to prevent hydration mismatch
+  const [mounted, setMounted] = useState(false);
+
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
@@ -143,6 +146,11 @@ function AdminOrders() {
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
   const [shippingForm, setShippingForm] = useState({ trackingId: "", courierPartner: "", expectedDeliveryDate: "", notes: "", shippingStatus: "" });
   const [panelOpen, setPanelOpen] = useState(false);
+
+  // Initialize mounted state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const orderColumns = ["Order #", "Customer", "Items", "Amount", "Payment", "Status", "Agent", "Actions"];
 
@@ -161,10 +169,10 @@ function AdminOrders() {
   };
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !mounted) return;
     fetchOrders(filters);
     fetchDeliveryAgents();
-  }, [token, filters]);
+  }, [token, filters, mounted]);
 
   const openOrder = async (orderId: number) => {
     setDetailLoading(true);

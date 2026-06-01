@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useRouter } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { useAppSelector } from "@/store/hooks";
@@ -9,23 +9,31 @@ import { getAdminToken } from "@/lib/utils";
 const DEMO_EMAIL = "admin@example.com";
 
 export function AdminLayout() {
+  // Mount state to prevent hydration mismatches
+  const [mounted, setMounted] = useState(false);
+  
   const storeToken = useAppSelector((state) => state.admin.token);
   const storeUser = useAppSelector((state) => state.admin.user) as { email?: string } | null;
   const token = storeToken ?? getAdminToken();
 
   const router = useRouter();
   const navigate = useNavigate();
-  const currentPath = router?.state?.location?.pathname ?? (typeof window !== "undefined" ? window.location.pathname : "");
+  const currentPath = router?.state?.location?.pathname ?? "";
   const isLoginPage = currentPath.startsWith("/admin/login");
 
   // Get user email: Redux store (after fresh login) or localStorage (after page refresh)
-  const userEmail =
-    storeUser?.email ||
-    (typeof window !== "undefined" ? localStorage.getItem("admin_user_email") ?? "" : "");
+  const userEmail = storeUser?.email || "";
 
   const isDemo = userEmail === DEMO_EMAIL;
 
+  // Initialize mounted state and handle client-only logic
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     if (currentPath === "/admin") {
       if (token) {
         navigate({ to: "/admin/dashboard", replace: true });
@@ -45,7 +53,12 @@ export function AdminLayout() {
     if (!token && currentPath.startsWith("/admin")) {
       navigate({ to: "/", replace: true });
     }
-  }, [currentPath, token, isLoginPage, navigate]);
+  }, [currentPath, token, isLoginPage, navigate, mounted]);
+
+  // Only show authenticated layout after mount
+  if (!mounted) {
+    return <Outlet />;
+  }
 
   if (!token && currentPath.startsWith("/admin") && !isLoginPage) {
     return null;

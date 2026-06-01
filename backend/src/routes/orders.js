@@ -141,179 +141,260 @@ async function fetchOrderById(id) {
 }
 
 router.get("/agents", async (req, res) => {
-  const agents = await query(`SELECT id, name, phone, status FROM delivery_agents ORDER BY name`);
-  res.json({ agents });
+  try {
+    const agents = await query(`SELECT id, name, phone, status FROM delivery_agents ORDER BY name`);
+    return res.json({ success: true, agents: agents || [] });
+  } catch (error) {
+    console.error("Error fetching agents:", error);
+    return res.status(500).json({ success: false, error: "Failed to fetch agents", agents: [] });
+  }
 });
 
 router.get("/", async (req, res) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 20;
-  const offset = (page - 1) * limit;
-  const { where, params } = buildWhereClauses(req.query);
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const { where, params } = buildWhereClauses(req.query);
 
-  const orders = await query(
-    `SELECT
-      o.id,
-      o.order_date,
-      o.total_amount,
-      o.status,
-      o.subtotal,
-      o.delivery_charge,
-      o.discount,
-      o.tax,
-      u.name AS customer_name,
-      u.phone AS customer_phone,
-      p.method AS payment_method,
-      p.status AS payment_status,
-      p.transaction_id,
-      s.tracking_id,
-      da.name AS delivery_agent,
-      COUNT(DISTINCT oi.id) AS products_count
-    FROM orders o
-    JOIN users u ON u.id = o.user_id
-    LEFT JOIN payments p ON p.id = o.payment_id
-    LEFT JOIN shipping s ON s.order_id = o.id
-    LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
-    LEFT JOIN order_items oi ON oi.order_id = o.id
-    WHERE ${where}
-    GROUP BY o.id
-    ORDER BY o.order_date DESC
-    LIMIT ? OFFSET ?`,
-    [...params, limit, offset],
-  );
+    const orders = await query(
+      `SELECT
+        o.id,
+        o.order_date,
+        o.total_amount,
+        o.status,
+        o.subtotal,
+        o.delivery_charge,
+        o.discount,
+        o.tax,
+        u.name AS customer_name,
+        u.phone AS customer_phone,
+        p.method AS payment_method,
+        p.status AS payment_status,
+        p.transaction_id,
+        s.tracking_id,
+        da.name AS delivery_agent,
+        COUNT(DISTINCT oi.id) AS products_count
+      FROM orders o
+      JOIN users u ON u.id = o.user_id
+      LEFT JOIN payments p ON p.id = o.payment_id
+      LEFT JOIN shipping s ON s.order_id = o.id
+      LEFT JOIN delivery_agents da ON da.id = o.delivery_agent_id
+      LEFT JOIN order_items oi ON oi.order_id = o.id
+      WHERE ${where}
+      GROUP BY o.id
+      ORDER BY o.order_date DESC
+      LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
+    );
 
-  const totalRows = await query(
-    `SELECT COUNT(DISTINCT o.id) AS total
-     FROM orders o
-     JOIN users u ON u.id = o.user_id
-     LEFT JOIN payments p ON p.id = o.payment_id
-     LEFT JOIN order_items oi ON oi.order_id = o.id
-     WHERE ${where}`,
-    params,
-  );
+    const totalRows = await query(
+      `SELECT COUNT(DISTINCT o.id) AS total
+       FROM orders o
+       JOIN users u ON u.id = o.user_id
+       LEFT JOIN payments p ON p.id = o.payment_id
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       WHERE ${where}`,
+      params,
+    );
 
-  const statsRows = await query(
-    `SELECT
-      COUNT(*) AS totalOrders,
-      SUM(CASE WHEN DATE(o.order_date) = CURRENT_DATE() THEN 1 ELSE 0 END) AS todayOrders,
-      SUM(CASE WHEN o.status = 'Pending' THEN 1 ELSE 0 END) AS pendingOrders,
-      SUM(CASE WHEN o.status = 'Confirmed' THEN 1 ELSE 0 END) AS confirmedOrders,
-      SUM(CASE WHEN o.status = 'Processing' THEN 1 ELSE 0 END) AS processingOrders,
-      SUM(CASE WHEN o.status = 'Packed' THEN 1 ELSE 0 END) AS packedOrders,
-      SUM(CASE WHEN o.status = 'Shipped' THEN 1 ELSE 0 END) AS shippedOrders,
-      SUM(CASE WHEN o.status = 'Out For Delivery' THEN 1 ELSE 0 END) AS outForDeliveryOrders,
-      SUM(CASE WHEN o.status = 'Delivered' THEN 1 ELSE 0 END) AS deliveredOrders,
-      SUM(CASE WHEN o.status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelledOrders,
-      SUM(o.total_amount) AS totalRevenue
-    FROM orders o`,
-  );
+    const statsRows = await query(
+      `SELECT
+        COUNT(*) AS totalOrders,
+        SUM(CASE WHEN DATE(o.order_date) = CURRENT_DATE() THEN 1 ELSE 0 END) AS todayOrders,
+        SUM(CASE WHEN o.status = 'Pending' THEN 1 ELSE 0 END) AS pendingOrders,
+        SUM(CASE WHEN o.status = 'Confirmed' THEN 1 ELSE 0 END) AS confirmedOrders,
+        SUM(CASE WHEN o.status = 'Processing' THEN 1 ELSE 0 END) AS processingOrders,
+        SUM(CASE WHEN o.status = 'Packed' THEN 1 ELSE 0 END) AS packedOrders,
+        SUM(CASE WHEN o.status = 'Shipped' THEN 1 ELSE 0 END) AS shippedOrders,
+        SUM(CASE WHEN o.status = 'Out For Delivery' THEN 1 ELSE 0 END) AS outForDeliveryOrders,
+        SUM(CASE WHEN o.status = 'Delivered' THEN 1 ELSE 0 END) AS deliveredOrders,
+        SUM(CASE WHEN o.status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelledOrders,
+        SUM(o.total_amount) AS totalRevenue
+      FROM orders o`,
+    );
 
-  res.json({
-    orders,
-    total: totalRows[0]?.total ?? 0,
-    page,
-    limit,
-    stats: statsRows[0] || {
-      totalOrders: 0,
-      todayOrders: 0,
-      pendingOrders: 0,
-      confirmedOrders: 0,
-      processingOrders: 0,
-      packedOrders: 0,
-      shippedOrders: 0,
-      outForDeliveryOrders: 0,
-      deliveredOrders: 0,
-      cancelledOrders: 0,
-      totalRevenue: 0,
-    },
-  });
+    return res.json({
+      success: true,
+      data: {
+        orders: orders || [],
+        total: totalRows[0]?.total ?? 0,
+        page,
+        limit,
+        stats: statsRows[0] || {
+          totalOrders: 0,
+          todayOrders: 0,
+          pendingOrders: 0,
+          confirmedOrders: 0,
+          processingOrders: 0,
+          packedOrders: 0,
+          shippedOrders: 0,
+          outForDeliveryOrders: 0,
+          deliveredOrders: 0,
+          cancelledOrders: 0,
+          totalRevenue: 0,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch orders",
+      data: {
+        orders: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        stats: {
+          totalOrders: 0,
+          todayOrders: 0,
+          pendingOrders: 0,
+          confirmedOrders: 0,
+          processingOrders: 0,
+          packedOrders: 0,
+          shippedOrders: 0,
+          outForDeliveryOrders: 0,
+          deliveredOrders: 0,
+          cancelledOrders: 0,
+          totalRevenue: 0,
+        },
+      },
+    });
+  }
 });
 
 router.get("/:id", async (req, res) => {
-  const result = await fetchOrderById(req.params.id);
-  if (!result) return res.status(404).json({ error: "Order not found." });
-  res.json(result);
+  try {
+    const result = await fetchOrderById(req.params.id);
+    if (!result) {
+      return res.status(404).json({ success: false, error: "Order not found." });
+    }
+    return res.json({ success: true, order: result.order, items: result.items, history: result.history });
+  } catch (error) {
+    console.error("Error fetching order by id:", error);
+    return res.status(500).json({ success: false, error: "Failed to fetch order details" });
+  }
 });
 
 router.put("/:id/status", async (req, res) => {
-  const { status, note } = req.body;
-  if (!status || !ORDER_STATUSES.includes(status)) {
-    return res.status(400).json({ error: "Invalid order status." });
+  try {
+    const { status, note } = req.body;
+    if (!status || !ORDER_STATUSES.includes(status)) {
+      return res.status(400).json({ success: false, error: "Invalid order status." });
+    }
+
+    await query(`UPDATE orders SET status = ? WHERE id = ?`, [status, req.params.id]);
+    await query(
+      `INSERT INTO order_history (order_id, status, note, created_at) VALUES (?, ?, ?, UTC_TIMESTAMP())`,
+      [req.params.id, status, note || `${status} by admin`],
+    );
+
+    return res.json({ success: true, message: "Order status updated." });
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    return res.status(500).json({ success: false, error: "Failed to update order status" });
   }
-
-  await query(`UPDATE orders SET status = ? WHERE id = ?`, [status, req.params.id]);
-  await query(
-    `INSERT INTO order_history (order_id, status, note, created_at) VALUES (?, ?, ?, UTC_TIMESTAMP())`,
-    [req.params.id, status, note || `${status} by admin`],
-  );
-
-  res.json({ message: "Order status updated." });
 });
 
 router.put("/:id/assign-agent", async (req, res) => {
-  const { delivery_agent_id } = req.body;
-  if (!delivery_agent_id) return res.status(400).json({ error: "Delivery agent is required." });
+  try {
+    const { delivery_agent_id } = req.body;
+    if (!delivery_agent_id) {
+      return res.status(400).json({ success: false, error: "Delivery agent is required." });
+    }
 
-  const agent = await findOne(`SELECT id FROM delivery_agents WHERE id = ? LIMIT 1`, [delivery_agent_id]);
-  if (!agent) return res.status(404).json({ error: "Delivery agent not found." });
+    const agent = await findOne(`SELECT id FROM delivery_agents WHERE id = ? LIMIT 1`, [delivery_agent_id]);
+    if (!agent) {
+      return res.status(404).json({ success: false, error: "Delivery agent not found." });
+    }
 
-  await query(`UPDATE orders SET delivery_agent_id = ? WHERE id = ?`, [delivery_agent_id, req.params.id]);
-  res.json({ message: "Delivery agent assigned." });
+    await query(`UPDATE orders SET delivery_agent_id = ? WHERE id = ?`, [delivery_agent_id, req.params.id]);
+    return res.json({ success: true, message: "Delivery agent assigned." });
+  } catch (error) {
+    console.error("Error assigning delivery agent:", error);
+    return res.status(500).json({ success: false, error: "Failed to assign delivery agent" });
+  }
 });
 
 router.put("/:id/shipping", async (req, res) => {
-  const { trackingId, courierPartner, expectedDeliveryDate, notes, shippingStatus } = req.body;
-  const order = await findOne(`SELECT id FROM orders WHERE id = ? LIMIT 1`, [req.params.id]);
-  if (!order) return res.status(404).json({ error: "Order not found." });
+  try {
+    const { trackingId, courierPartner, expectedDeliveryDate, notes, shippingStatus } = req.body;
+    const order = await findOne(`SELECT id FROM orders WHERE id = ? LIMIT 1`, [req.params.id]);
+    if (!order) {
+      return res.status(404).json({ success: false, error: "Order not found." });
+    }
 
-  const existing = await findOne(`SELECT id FROM shipping WHERE order_id = ? LIMIT 1`, [req.params.id]);
-  if (existing) {
-    await query(
-      `UPDATE shipping SET tracking_id = ?, courier_partner = ?, expected_delivery_date = ?, notes = ?, status = ?, updated_at = UTC_TIMESTAMP() WHERE order_id = ?`,
-      [trackingId || null, courierPartner || null, expectedDeliveryDate ? new Date(expectedDeliveryDate) : null, notes || "", shippingStatus || null, req.params.id],
-    );
-  } else {
-    await query(
-      `INSERT INTO shipping (order_id, tracking_id, courier_partner, expected_delivery_date, notes, status, updated_at) VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())`,
-      [req.params.id, trackingId || null, courierPartner || null, expectedDeliveryDate ? new Date(expectedDeliveryDate) : null, notes || "", shippingStatus || "pending"],
-    );
+    const existing = await findOne(`SELECT id FROM shipping WHERE order_id = ? LIMIT 1`, [req.params.id]);
+    if (existing) {
+      await query(
+        `UPDATE shipping SET tracking_id = ?, courier_partner = ?, expected_delivery_date = ?, notes = ?, status = ?, updated_at = UTC_TIMESTAMP() WHERE order_id = ?`,
+        [trackingId || null, courierPartner || null, expectedDeliveryDate ? new Date(expectedDeliveryDate) : null, notes || "", shippingStatus || null, req.params.id],
+      );
+    } else {
+      await query(
+        `INSERT INTO shipping (order_id, tracking_id, courier_partner, expected_delivery_date, notes, status, updated_at) VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())`,
+        [req.params.id, trackingId || null, courierPartner || null, expectedDeliveryDate ? new Date(expectedDeliveryDate) : null, notes || "", shippingStatus || "pending"],
+      );
+    }
+
+    return res.json({ success: true, message: "Shipping details updated." });
+  } catch (error) {
+    console.error("Error updating shipping:", error);
+    return res.status(500).json({ success: false, error: "Failed to update shipping details" });
   }
-
-  res.json({ message: "Shipping details updated." });
 });
 
 router.get("/:id/invoice", async (req, res) => {
-  const result = await fetchOrderById(req.params.id);
-  if (!result) return res.status(404).json({ error: "Order not found." });
+  try {
+    const result = await fetchOrderById(req.params.id);
+    if (!result) {
+      return res.status(404).json({ success: false, error: "Order not found." });
+    }
 
-  res.json({
-    invoice: {
-      company: {
-        name: "Sam Enterprises",
-        address: "Premium Pickles & Foods, HQ Road, Local Market, India",
-        phone: "+91 98765 43210",
-        email: "support@samenterprises.com",
+    return res.json({
+      success: true,
+      invoice: {
+        company: {
+          name: "Sam Enterprises",
+          address: "Premium Pickles & Foods, HQ Road, Local Market, India",
+          phone: "+91 98765 43210",
+          email: "support@samenterprises.com",
+        },
+        order: result.order,
+        items: result.items,
+        history: result.history,
       },
-      order: result.order,
-      items: result.items,
-      history: result.history,
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Error fetching invoice:", error);
+    return res.status(500).json({ success: false, error: "Failed to generate invoice" });
+  }
 });
 
 router.post("/print", async (req, res) => {
-  const { orderId, printType } = req.body;
-  if (!orderId) return res.status(400).json({ error: "Order ID is required for printing." });
-  const result = await fetchOrderById(orderId);
-  if (!result) return res.status(404).json({ error: "Order not found." });
+  try {
+    const { orderId, printType } = req.body;
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: "Order ID is required for printing." });
+    }
+    const result = await fetchOrderById(orderId);
+    if (!result) {
+      return res.status(404).json({ success: false, error: "Order not found." });
+    }
 
-  res.json({
-    message: "Print payload generated.",
-    printType: printType || "invoice",
-    order: result.order,
-    items: result.items,
-    history: result.history,
-  });
+    return res.json({
+      success: true,
+      message: "Print payload generated.",
+      printType: printType || "invoice",
+      order: result.order,
+      items: result.items,
+      history: result.history,
+    });
+  } catch (error) {
+    console.error("Error preparing print:", error);
+    return res.status(500).json({ success: false, error: "Failed to prepare print" });
+  }
 });
 
 export { router as ordersRouter };

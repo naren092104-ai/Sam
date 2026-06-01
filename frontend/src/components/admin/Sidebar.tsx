@@ -37,6 +37,7 @@ const navItems = [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -44,12 +45,31 @@ export function Sidebar() {
 
   const currentPath = router.state.location.pathname;
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleLogout = () => {
+    // Clear Redux state
     dispatch(logout());
-    localStorage.removeItem("admin_token");
-    localStorage.removeItem("admin_user_email");
+    
+    // Clear all localStorage
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+      // Or specifically clear admin-related items
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_user_email");
+      localStorage.removeItem("admin_user");
+    }
+    
+    // Redirect to home, NOT to /admin/login
     navigate({ to: "/", replace: true });
   };
+
+  // Only render on client to prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <aside
