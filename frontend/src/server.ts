@@ -1,4 +1,5 @@
 import "./lib/error-capture";
+import { getAssetFromKV } from "@cloudflare/kv-asset-handler";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
@@ -40,6 +41,16 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Serve static assets uploaded via `wrangler site` using the KV asset handler
+      try {
+        const url = new URL(request.url);
+        if (url.pathname.startsWith("/assets/") || url.pathname === "/favicon.ico") {
+          // @ts-ignore - `getAssetFromKV` expects the worker environment shape provided by Wrangler
+          return await getAssetFromKV({ request, env, waitUntil: (ctx as any)?.waitUntil });
+        }
+      } catch (assetErr) {
+        console.warn("Asset handler error:", assetErr);
+      }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
